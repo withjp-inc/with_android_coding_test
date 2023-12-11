@@ -1,46 +1,73 @@
 package com.example.myapplication
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.myapplication.ui.theme.MyApplicationTheme
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.RecyclerView
+import coil.load
+import com.example.myapplication.databinding.ActivityMainBinding
+import com.example.myapplication.databinding.ItemUserBinding
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import okhttp3.OkHttpClient
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
+
+    private val binding by lazy { ActivityMainBinding.inflate(layoutInflater) }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            MyApplicationTheme {
-                // A surface container using the 'background' color from the theme
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    Greeting("Android")
+        setContentView(binding.root)
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            val client = OkHttpClient()
+            val request = okhttp3.Request.Builder()
+                .url("https://raw.githubusercontent.com/withjp-inc/with_android_coding_test/main/api/users/users.json")
+                .build()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) throw Exception("Unexpected code $response")
+
+                val body = response.body!!.string()
+                val users = Json.decodeFromString<List<User>>(body)
+
+                withContext(Dispatchers.Main) {
+                    binding.recyclerView.adapter = MyAdapter(users)
                 }
             }
         }
     }
 }
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
+@Serializable
+data class User(
+    val id: Int,
+    val nickname: String,
+    val photo: String
+)
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    MyApplicationTheme {
-        Greeting("Android")
+class MyAdapter(
+    val users: List<User>
+) : RecyclerView.Adapter<MyAdapter.ViewHolder>() {
+
+    class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val binding = ItemUserBinding.bind(view)
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+        val view = ItemUserBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        return ViewHolder(view.root)
+    }
+
+    override fun getItemCount() = users.size
+
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        holder.binding.nicknameTextView.text = users[position].nickname
+        holder.binding.thumbnailImageView.load(users[position].photo)
     }
 }
