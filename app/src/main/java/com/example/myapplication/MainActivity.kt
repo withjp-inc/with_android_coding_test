@@ -7,7 +7,7 @@ import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
-import coil.load
+import coil3.load
 import com.example.myapplication.databinding.ActivityMainBinding
 import com.example.myapplication.databinding.ItemUserBinding
 import kotlinx.coroutines.Dispatchers
